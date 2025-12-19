@@ -2,36 +2,54 @@ import streamlit as st
 import pandas as pd
 import os
 
-st.set_page_config(page_title="Scopus 2025 Sorgulama", layout="wide")
+# Sayfa Genişliği ve Başlık
+st.set_page_config(page_title="Scopus 2025 Rehberi", layout="wide")
 
-# DOSYA ADINI BURADAN AYARLIYORUZ
-# GitHub'a yüklediğin dosya adı neyse buraya onu yaz:
-DOSYA_ADI = "scopus dergi listesi 2025.xlsx - Sayfa1.csv"
+st.title("🔍 Scopus 2025 Dergi Sorgulama Sistemi")
+st.markdown("---")
 
+# --- DOSYA YÜKLEME BÖLÜMÜ ---
 @st.cache_data
 def load_data():
-    if os.path.exists(DOSYA_ADI):
-        return pd.read_csv(DOSYA_ADI)
+    # Klasördeki tüm dosyaları tara ve .csv olanı bul
+    files = [f for f in os.listdir('.') if f.endswith('.csv')]
+    
+    # Öncelikle senin belirttiğin ismi ara
+    target_name = "scopus dergi listesi 2025.xlsx - Sayfa1.csv"
+    
+    if target_name in files:
+        return pd.read_csv(target_name)
+    elif len(files) > 0:
+        # Eğer o isimde yoksa, klasördeki ilk bulduğu CSV'yi yükle (Hata önleyici)
+        return pd.read_csv(files[0])
     else:
-        st.error(f"Sistem dosyayı bulamadı! Aranan isim: {DOSYA_ADI}")
-        st.info("GitHub'daki dosya adınız ile koddaki ismin aynı olduğundan emin olun.")
         return None
 
-st.title("🔍 Scopus 2025 Dergi Listesi")
+try:
+    df = load_data()
 
-df = load_data()
+    if df is not None:
+        # Arama Kutusu
+        search_query = st.text_input("Dergi Adı, ISSN veya Yayıncı Giriniz:", placeholder="Örn: Nature veya 1234-5678")
 
-if df is not None:
-    search = st.text_input("Dergi adı veya ISSN girin:", "")
-    if search:
-        # Arama sonuçlarını filtrele
-        results = df[
-            df.iloc[:, 0].str.contains(search, case=False, na=False) | # 1. sütunda ara (Genelde Source Title)
-            df.iloc[:, 1].astype(str).str.contains(search, na=False)   # 2. sütunda ara (Genelde ISSN)
-        ]
-        
-        if not results.empty:
-            st.success(f"{len(results)} sonuç bulundu.")
-            st.dataframe(results)
+        if search_query:
+            # Arama filtresi: Tüm sütunlarda ara
+            mask = df.apply(lambda row: row.astype(str).str.contains(search_query, case=False).any(), axis=1)
+            results = df[mask]
+
+            if not results.empty:
+                st.success(f"{len(results)} adet sonuç bulundu.")
+                
+                # Tabloyu göster
+                st.dataframe(results, use_container_width=True)
+                
+                # İstatistiksel özet (Opsiyonel)
+                if 'Active or Inactive' in results.columns:
+                    st.sidebar.subheader("Durum Özeti")
+                    st.sidebar.write(results['Active or Inactive'].value_counts())
+            else:
+                st.warning("Eşleşen bir kayıt bulunamadı. Lütfen farklı bir anahtar kelime deneyin.")
         else:
-            st.warning("Sonuç bulunamadı.")
+            st.info("Sorgulama yapmak için yukarıdaki alana yazmaya başlayın.")
+            st.write("Şu an sistemde toplam", len(df), "kayıtlı dergi/kaynak bulunuyor.")
+            st.dataframe(df.head(10)) # İlk 10 satırı önizleme olarak
