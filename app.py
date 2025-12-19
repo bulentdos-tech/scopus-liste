@@ -16,22 +16,27 @@ def load_data():
     target = "scopus dergi listesi 2025.xlsx - Sayfa1.csv"
     file_to_load = target if target in csv_files else csv_files[0]
     
-    # KARAKTER HATASINI ÇÖZEN KISIM: Farklı kodlamaları dene
-    encodings = ['utf-8', 'latin1', 'iso-8859-9', 'cp1254']
-    for encoding in encodings:
+    encodings = ['utf-8', 'iso-8859-9', 'cp1254', 'latin1']
+    
+    for enc in encodings:
         try:
-            return pd.read_csv(file_to_load, encoding=encoding)
-        except UnicodeDecodeError:
+            # on_bad_lines='skip' -> Hatalı satırları atlar
+            # sep=None, engine='python' -> Virgül mü noktalı virgül mü kendi bulur
+            return pd.read_csv(file_to_load, encoding=enc, sep=None, engine='python', on_bad_lines='skip')
+        except:
             continue
     return None
 
 df = load_data()
 
 if df is not None:
+    # Sütun isimlerindeki boşlukları temizle
+    df.columns = [c.strip() for c in df.columns]
+    
     query = st.text_input("Dergi Adı veya ISSN Giriniz:", "")
 
     if query:
-        # Arama yaparken hata oluşmaması için boş değerleri temizle
+        # Arama mantığı
         mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False, na=False).any(), axis=1)
         results = df[mask]
 
@@ -41,8 +46,8 @@ if df is not None:
         else:
             st.warning("Eşleşen bir dergi bulunamadı.")
     else:
-        st.info("Lütfen arama yapmak için bir isim veya ISSN yazın.")
-        st.write("Liste Önizlemesi:")
+        st.info("Arama yapmak için yukarıdaki kutuyu kullanın.")
+        st.write("Liste Önizlemesi (İlk 10 Satır):")
         st.dataframe(df.head(10))
 else:
-    st.error("HATA: CSV dosyası bulunamadı veya okunamadı.")
+    st.error("HATA: CSV dosyası okunamadı. Lütfen dosya formatını kontrol edin.")
