@@ -24,15 +24,22 @@ st.markdown("---")
 # --- 3. VERİ YÜKLEME ---
 @st.cache_data
 def load_data():
-    files = [f for f in os.listdir('.') if f.lower().endswith('.csv')]
-    if not files:
+    # Klasördeki tüm dosyaları al ve isminde '.csv' geçenleri filtrele
+    all_files = os.listdir('.')
+    csv_files = [f for f in all_files if f.lower().endswith('.csv')]
+    
+    if not csv_files:
         return None
     
-    # Klasördeki ilk CSV dosyasını al
-    f_path = files[0]
-    for enc in ['utf-8', 'iso-8859-9', 'cp1254', 'latin1']:
+    # En büyük boyutlu veya listedeki ilk CSV'yi seç (Senin dosyanı bulacaktır)
+    file_to_load = csv_files[0]
+    
+    encodings = ['utf-8', 'iso-8859-9', 'cp1254', 'latin1']
+    for enc in encodings:
         try:
-            return pd.read_csv(f_path, encoding=enc, sep=None, engine='python', on_bad_lines='skip')
+            # Virgül, noktalı virgül vb. ayraçları otomatik tespit et
+            df = pd.read_csv(file_to_load, encoding=enc, sep=None, engine='python', on_bad_lines='skip')
+            return df
         except:
             continue
     return None
@@ -41,18 +48,24 @@ df = load_data()
 
 # --- 4. ARAMA VE EKRAN ---
 if df is not None:
-    df.columns = [c.strip() for c in df.columns]
+    # Sütun başlıklarındaki boşlukları temizle
+    df.columns = [str(c).strip() for c in df.columns]
+    
     q = st.text_input("Dergi Adı veya ISSN Yazınız:", placeholder="Örn: Nature")
 
     if q:
+        # Satır bazlı arama (tüm sütunlarda)
         mask = df.apply(lambda row: row.astype(str).str.contains(q, case=False, na=False).any(), axis=1)
         res = df[mask]
+        
         if not res.empty:
             st.success(f"Toplam {len(res)} sonuç bulundu.")
             st.dataframe(res, use_container_width=True)
         else:
-            st.warning("Sonuç bulunamadı.")
+            st.warning(f"'{q}' için bir sonuç bulunamadı.")
     else:
         st.info("Sorgulama yapmak için yukarıdaki kutucuğu kullanın.")
 else:
-    st.error("HATA: CSV dosyası bulunamadı.")
+    # Hata durumunda klasörü debug için tekrar yazdıralım
+    st.error("Dosya hala okunamıyor.")
+    st.write("Klasördeki Dosyalar:", os.listdir('.'))
