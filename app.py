@@ -24,28 +24,39 @@ st.markdown("---")
 # --- 3. VERİ YÜKLEME ---
 @st.cache_data
 def load_data():
-    # Dosya adını 'veriler.csv' olarak belirledik
-    file_path = "veriler.csv"
+    # Tam olarak senin klasöründeki dosya ismini yazıyoruz
+    file_path = "scopus dergi listesi 2025.xlsx - Sayfa1.csv"
     
     if os.path.exists(file_path):
         encodings = ['utf-8', 'iso-8859-9', 'cp1254', 'latin1']
         for enc in encodings:
             try:
-                # Ayraç hatasını önlemek için sep=None kullanıyoruz
+                # separator (ayraç) hatasını önlemek için sep=None kullanıyoruz
                 return pd.read_csv(file_path, encoding=enc, sep=None, engine='python', on_bad_lines='skip')
             except:
                 continue
+    else:
+        # Eğer yukarıdaki isim tutmazsa klasördeki ilk CSV'yi bulmaya çalış
+        csv_files = [f for f in os.listdir('.') if f.endswith('.csv')]
+        if csv_files:
+            for enc in ['utf-8', 'iso-8859-9', 'cp1254', 'latin1']:
+                try:
+                    return pd.read_csv(csv_files[0], encoding=enc, sep=None, engine='python', on_bad_lines='skip')
+                except:
+                    continue
     return None
 
 df = load_data()
 
 # --- 4. ARAMA VE EKRAN ---
 if df is not None:
+    # Sütun başlıklarını temizle
     df.columns = [c.strip() for c in df.columns]
     
     query = st.text_input("Dergi Adı, ISSN veya Yayıncı Yazınız:", placeholder="Örn: Nature")
 
     if query:
+        # Tüm satırlarda arama yap
         mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False, na=False).any(), axis=1)
         results = df[mask]
 
@@ -53,12 +64,9 @@ if df is not None:
             st.success(f"{len(results)} sonuç bulundu.")
             st.dataframe(results, use_container_width=True)
         else:
-            st.warning("Sonuç bulunamadı.")
+            st.warning("Eşleşen bir dergi bulunamadı.")
     else:
-        st.info("Sorgulama yapmak için yukarıya bir kelime yazın.")
+        st.info("Sorgulama yapmak için yukarıdaki kutuya bir kelime yazın.")
 else:
-    # Hata durumunda klasördeki dosyaları listele ki sorunu görelim
-    st.error("Dosya Bulunamadı!")
-    st.write("GitHub klasörünüzdeki dosyalar şunlar:")
-    st.write(os.listdir('.'))
-    st.info("Lütfen CSV dosyanızın adını GitHub'da 'veriler.csv' olarak değiştirin.")
+    st.error("Dosya Bulunamadı! Lütfen CSV dosyasının adını kontrol edin.")
+    st.write("Mevcut dosyalar:", os.listdir('.'))
