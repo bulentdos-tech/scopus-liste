@@ -20,8 +20,6 @@ def load_data():
     
     for enc in encodings:
         try:
-            # on_bad_lines='skip' -> Hatalı satırları atlar
-            # sep=None, engine='python' -> Virgül mü noktalı virgül mü kendi bulur
             return pd.read_csv(file_to_load, encoding=enc, sep=None, engine='python', on_bad_lines='skip')
         except:
             continue
@@ -30,9 +28,10 @@ def load_data():
 df = load_data()
 
 if df is not None:
-    # Sütun isimlerindeki boşlukları temizle
+    # Sütun isimlerini temizle
     df.columns = [c.strip() for c in df.columns]
     
+    # Arama Kutusu
     query = st.text_input("Dergi Adı veya ISSN Giriniz:", "")
 
     if query:
@@ -46,8 +45,7 @@ if df is not None:
         else:
             st.warning("Eşleşen bir dergi bulunamadı.")
     else:
-        st.info("Arama yapmak için yukarıdaki kutuyu kullanın.")
-        st.write("Liste Önizlemesi (İlk 10 Satır):")
-        st.dataframe(df.head(10))
+        # ÖNİZLEME SİLİNDİ: Burası artık boş, kullanıcı yazana kadar bir şey görünmez.
+        st.info("Sorgulama yapmak için yukarıdaki kutucuğa dergi adını veya ISSN numarasını yazın.")
 else:
-    st.error("HATA: CSV dosyası okunamadı. Lütfen dosya formatını kontrol edin.")
+    st.error("HATA: CSV dosyası okunamadı.")
