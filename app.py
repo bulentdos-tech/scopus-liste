@@ -1,13 +1,31 @@
 import streamlit as st
 import pandas as pd
 import os
+import streamlit.components.v1 as components
 
-# Sayfa Ayarları
+# --- 1. GOOGLE ANALYTICS BÖLÜMÜ (EN BAŞI) ---
+# Buradaki 'G-XXXXXXXXXX' yerine Google'dan aldığın kodu yapıştır!
+GA_ID = "G-XXXXXXXXXX" 
+
+ga_code = f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){{dataLayer.push(arguments);}}
+        gtag('js', new Date());
+        gtag('config', '{GA_ID}');
+    </script>
+"""
+components.html(ga_code, height=0)
+# --------------------------------------------
+
+# --- 2. SAYFA AYARLARI ---
 st.set_page_config(page_title="Scopus 2025 Sorgulama", layout="wide")
 
 st.title("🔍 Scopus 2025 Dergi Sorgulama")
 st.markdown("---")
 
+# --- 3. VERİ YÜKLEME FONKSİYONU ---
 def load_data():
     csv_files = [f for f in os.listdir('.') if f.endswith('.csv')]
     if not csv_files:
@@ -27,15 +45,13 @@ def load_data():
 
 df = load_data()
 
+# --- 4. ARAMA VE GÖRÜNTÜLEME ---
 if df is not None:
-    # Sütun isimlerini temizle
     df.columns = [c.strip() for c in df.columns]
     
-    # Arama Kutusu
     query = st.text_input("Dergi Adı veya ISSN Giriniz:", "")
 
     if query:
-        # Arama mantığı
         mask = df.apply(lambda row: row.astype(str).str.contains(query, case=False, na=False).any(), axis=1)
         results = df[mask]
 
@@ -45,7 +61,6 @@ if df is not None:
         else:
             st.warning("Eşleşen bir dergi bulunamadı.")
     else:
-        # ÖNİZLEME SİLİNDİ: Burası artık boş, kullanıcı yazana kadar bir şey görünmez.
-        st.info("Sorgulama yapmak için yukarıdaki kutucuğa dergi adını veya ISSN numarasını yazın.")
+        st.info("Sorgulama yapmak için yukarıdaki kutucuğa yazın.")
 else:
     st.error("HATA: CSV dosyası okunamadı.")
